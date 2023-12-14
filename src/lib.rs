@@ -291,7 +291,7 @@ impl KurtosisTestNetwork {
 ///
 /// Launch `ethereum-package` enclave, this also spins up engine if not already done so.
 fn start_kurtosis_engine(network_params_file_name: &str) -> eyre::Result<(), KurtosisNetworkError> {
-    let mut net_param_conf_path = "tests/configs/".to_string();
+    let mut net_param_conf_path = "configs/".to_string();
     net_param_conf_path.push_str(network_params_file_name);
 
     let cmd_result = Command::new("kurtosis")
