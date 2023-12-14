@@ -38,7 +38,7 @@ async fn test_something() {
     // TODO: Optionally pass in rpc port or else default choose one for them.
     // 4: interact with network e.g. sending transactions.
     // Ex: sending two test transactions to test network.
-    let sender = TestEOA::new();
+    let mut sender = TestEOA::new();
     let tx = TypedTransaction::Legacy(TransactionRequest {
         from: Some(sender.address()),
         to: Some(sender.address().into()),
@@ -49,7 +49,7 @@ async fn test_something() {
         nonce: Some(sender.nonce().into()), // nonce, adjust as needed
         chain_id: Some(network.chain_id().into()), // chain id for mainnet, adjust as needed
     });
-    network.send_transaction(rpc_port, &sender, &tx).await.unwrap();
+    network.send_transaction(rpc_port, &mut sender, &tx).await.unwrap();
 
     // 5: Assert your application state changed as expected.
     // Ex: database has indexed the two transactions sent to test network.
