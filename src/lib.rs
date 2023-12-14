@@ -233,6 +233,9 @@ impl KurtosisTestNetwork {
             .unwrap();
         println!("SENT TX: {:?}", sent_tx);
 
+        // increment sender nonce, on successful transaction send 
+        sender.increment_nonce();
+
         Ok(sent_tx.tx_hash())
     }
 
