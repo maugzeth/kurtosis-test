@@ -1,0 +1,25 @@
+{
+  "participants": [
+    {
+      "el_client_type": "reth",
+      "el_client_image": "ghcr.io/paradigmxyz/reth",
+      "cl_client_type": "lighthouse",
+      "cl_client_image": "sigp/lighthouse:latest",
+      "count": 1
+    },
+    {
+      "el_client_type": "reth",
+      "el_client_image": "ghcr.io/paradigmxyz/reth",
+      "cl_client_type": "teku",
+      "cl_client_image": "consensys/teku:latest",
+      "count": 1
+    }
+  ],
+  "launch_additional_services": false,
+  "additional_services": [
+    "el_forkmon", 
+    "beacon_metrics_gazer", 
+    "dora", 
+    "prometheus_grafana"
+  ]
+}
