@@ -9,6 +9,9 @@ use serde_json::json;
 
 type EthRpcClient = SignerMiddleware<Provider<ethers::providers::Http>, LocalWallet>;
 
+/// Default local Ethereum chain identifier.
+pub const DEFAULT_LOCAL_CHAIN_ID: u64 = 3151908;
+
 #[derive(thiserror::Error, Debug)]
 pub enum KurtosisNetworkError {
     #[error("failed to connect to kurtosis engine")]
@@ -204,7 +207,7 @@ impl KurtosisTestNetwork {
 
     /// Default chain network ID for kurtosis test networks.
     pub fn chain_id(&self) -> u64 {
-        3151908
+        DEFAULT_LOCAL_CHAIN_ID
     }
 
     /// Destroy enclave containing eithereum test network, engine continues running.
