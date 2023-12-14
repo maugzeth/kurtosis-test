@@ -40,13 +40,18 @@ pub enum KurtosisNetworkError {
     HttpCallError(String),
 }
 
+/// Representation of a test externally owned account (EOA).
 pub struct TestEOA {
+    /// Number of transactions
     nonce: u64,
+    /// Generated address (public key)
     address: Address,
+    /// Generated private key 
     private_key: String,
 }
 
 impl TestEOA {
+    /// Create new test EOA with randomly generated private key.
     pub fn new() -> TestEOA {
         let wallet = LocalWallet::new(&mut rand::thread_rng());
         // TODO: Prefund the account with some ETH, by sending ETH to it from another account.
@@ -59,14 +64,17 @@ impl TestEOA {
         }
     }
 
+    /// Get address of EOA.
     pub fn address(&self) -> Address {
         self.address
     }
 
+    /// Get nonce of EOA, reflects number of transactions sent by EOA.
     pub fn nonce(&self) -> u64 {
         self.nonce
     }
 
+    /// Increment nonce of EOA by one, used when sending transactions.
     pub fn increment_nonce(&mut self) {
         self.nonce += 1;
     }
@@ -219,14 +227,17 @@ impl KurtosisTestNetwork {
     pub async fn send_transaction(
         &self,
         el_rpc_port: &EnclaveServicePortInfo,
-        sender: &TestEOA,
+        sender: &mut TestEOA,
         tx: &TypedTransaction,
     ) -> Result<TxHash, KurtosisNetworkError> {
+        // define RPC client for execution layer node, with sender as signer
         let rpc_client = self.rpc_client_for(el_rpc_port, sender).await?;
 
+        // fetch current block number to use as block id for transaction
         let block_num = rpc_client.get_block_number().await.unwrap();
         println!("BLOCK NUM: {:?}", block_num);
 
+        // send transaction to execution layer node
         let sent_tx = rpc_client
             .send_transaction(tx.clone(), Some(BlockId::from(block_num)))
             .await
