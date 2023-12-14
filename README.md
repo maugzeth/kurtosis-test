@@ -35,7 +35,8 @@ Define your network configuration, an example of how a simple network parameter 
       "count": 1
     }
   ],
-  "launch_additional_services": false
+  "launch_additional_services": false,
+  "additional_services": []
 }
 ```
 
@@ -46,7 +47,7 @@ This is a simple network configuration which contains two node participants.
 
 Global flags like `launch_additional_services` can be passed to further configure the network.
 
-In this case this flag could launch additional services like:
+In our case we don't need any but using this flag we could launch additional services like:
 
 - A Grafana + Prometheus instance
 - A transaction spammer called `tx-fuzz`
@@ -59,7 +60,9 @@ For more options check out `ethereum-package` documentation, [here](https://gith
 Here is a basic example of integration test for a transaction indexing program structure utilising `kurtosis-test` to launch ethereum test network:
 
 ```rust
-use kurtosis_test::KurtosisTestNetwork;
+use kurtosis_test::{KurtosisTestNetwork, TestEOA};
+use ethers::types::{transaction::eip2718::TypedTransaction, TransactionRequest};
+
 
 /// Setup Ethereum test network using `network_params.json`.
 ///
@@ -92,18 +95,28 @@ async fn test_something() {
     let database = MyDatabase::new();
     let indexer = MyIndexer::new(&database, rpc_service_port.url);
     
-    // 4: interact with network e.g. sending transactions.
-    // Ex: sending two test transactions to test network.
-      network.send_transaction(rpc_service_port, tx_object1);
-      network.send_transaction(rpc_service_port, tx_object2); 
+    // 4: interact with network e.g. define EOA and send transactions.
+    // Ex: sending test transactions to test network.
+    let sender = TestEOA::new();
+    let tx = TypedTransaction::Legacy(TransactionRequest {
+        from: Some(sender.address()),
+        to: Some(sender.address().into()),
+        gas: Some(21000.into()),
+        gas_price: Some(20_000_000_000u64.into()),
+        value: Some(1_000_000_000_000_000u64.into()),
+        data: None,
+        nonce: Some(sender.nonce().into()),
+        chain_id: Some(network.chain_id().into()),
+    });
+    network.send_transaction(rpc_port, &sender, &tx).await.unwrap();
     
     // 5: Assert your application state changed as expected.
     // Ex: database has indexed the two transactions sent to test network.
     let indexed_tx_count = database.count("transaction").await.unwrap();
     assert_eq!(indexed_tx_count, 2);
 
-    // 6. (optional) Teardown/destroy network, optionally destroy with_engine.
-    teardown_network(network, with_engine=false)
+    // 6. (Optional) Teardown/destroy network
+    teardown_network(network)
 }
 ```
 
@@ -117,10 +130,14 @@ The `kurtosis-test` create will handle spinning up the kurtosis engine, running 
 
 To debug your test network you need two things:
 
-#### **Kurtosis CLI**
-
+#### Kurtosis CLI
+  
 Use command line interface to directly interact with kurtosis engine and respective enclaves.
 
-#### **Docker**
+#### Docker
 
 View, manage and debug running docker images (engine, services).
+
+## Contibutors
+
+Authored by [@muagzeth](https://github.com/maugzeth) and maintained with 🖤 by **Dedsol Team**
