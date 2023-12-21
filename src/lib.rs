@@ -456,7 +456,7 @@ fn parse_services_from_enclave_inspect(raw_output: &String) -> Vec<EnclaveServic
             let port_info = EnclaveServicePortInfo {
                 name: caps.get(3).unwrap().as_str().to_string(),
                 protocol: caps.get(5).unwrap().as_str().to_string(),
-                url: caps.get(7).unwrap().as_str().to_string(),
+                url: remove_http_from_url(caps.get(7).unwrap().as_str().to_string()),
             };
             services.push(EnclaveService {
                 uuid: caps.get(1).unwrap().as_str().to_string(),
@@ -485,7 +485,7 @@ fn parse_services_from_enclave_inspect(raw_output: &String) -> Vec<EnclaveServic
             updated_service_ports.push(EnclaveServicePortInfo {
                 name: caps.get(1).unwrap().as_str().to_string(),
                 protocol: caps.get(3).unwrap().as_str().to_string(),
-                url: caps.get(5).unwrap().as_str().to_string(),
+                url: remove_http_from_url(caps.get(5).unwrap().as_str().to_string()),
             });
             last_service.ports = updated_service_ports;
             services.push(last_service);
@@ -494,4 +494,13 @@ fn parse_services_from_enclave_inspect(raw_output: &String) -> Vec<EnclaveServic
     });
 
     services
+}
+
+/// Removes "https://" prefix from url or returns original no prefix found.
+fn remove_http_from_url(url: String) -> String {
+    if url.contains("http://") {
+        url.replace("http://", "")
+    } else {
+        url
+    }
 }
