@@ -314,7 +314,7 @@ impl KurtosisTestNetwork {
 /// `kurtosis run github.com/kurtosis-tech/ethereum-package --args-file {network_params_file_name}`
 ///
 /// Launch `ethereum-package` enclave, this also spins up engine if not already done so.
-fn start_kurtosis_engine(network_params_file_name: &str) -> eyre::Result<(), KurtosisNetworkError> {
+fn start_kurtosis_engine(network_params_file_name: &str) -> Result<(), KurtosisNetworkError> {
     let mut net_param_conf_path = "configs/".to_string();
     net_param_conf_path.push_str(network_params_file_name);
 
@@ -341,7 +341,7 @@ fn start_kurtosis_engine(network_params_file_name: &str) -> eyre::Result<(), Kur
 /// `kurtosis version`
 ///
 /// If getting version fails, we know Kurtosis is not installed, else it is.
-fn is_kurtosis_cli_installed() -> eyre::Result<(), KurtosisNetworkError> {
+fn is_kurtosis_cli_installed() -> Result<(), KurtosisNetworkError> {
     let cmd_result = Command::new("kurtosis").arg("version").output();
     match cmd_result {
         Ok(out) => {
@@ -364,7 +364,7 @@ fn is_kurtosis_cli_installed() -> eyre::Result<(), KurtosisNetworkError> {
 /// `"Kurtosis engine is running with the following info"`
 ///
 /// If present in standard output of command, return `true` if so, else `false`.
-fn is_kurtosis_engine_running() -> eyre::Result<bool, KurtosisNetworkError> {
+fn is_kurtosis_engine_running() -> Result<bool, KurtosisNetworkError> {
     let cmd_out = Command::new("kurtosis")
         .arg("engine")
         .arg("status")
