@@ -1,6 +1,6 @@
 //!
 
-use kurtosis_test::{KurtosisTestNetwork, TestEOA};
+use kurtosis_test::{KurtosisTestNetwork, eoa::TestEOA};
 use ethers::types::{transaction::eip2718::TypedTransaction, TransactionRequest};
 
 async fn setup_network() -> KurtosisTestNetwork {

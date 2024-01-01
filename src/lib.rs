@@ -1,84 +1,23 @@
 //! Testing utility for managing local Kurtosis Ethereum network.
 
-use std::process::Command;
+// TODO: Implement `Drop` trait to automatically destroy/clean all enclaves of engine, calls self.teardown().
+// TODO: refresh/restart?
+// TODO: Mine utility for mining blocks: "mine(x)", "mine_every(sec)"
 
-use ethers::{prelude::*, types::transaction::eip2718::TypedTransaction, utils::hex::ToHex};
+use ethers::{prelude::*, types::transaction::eip2718::TypedTransaction};
 use kurtosis_sdk::engine_api::engine_service_client::EngineServiceClient;
-use regex::Regex;
 use serde_json::json;
 
+pub mod constants;
+pub mod eoa;
+mod kurtosis;
+mod errors;
+mod utils;
+
+use crate::eoa::TestEOA;
+use crate::errors::KurtosisNetworkError;
+
 type EthRpcClient = SignerMiddleware<Provider<ethers::providers::Http>, LocalWallet>;
-
-/// Default local Ethereum chain identifier.
-pub const DEFAULT_LOCAL_CHAIN_ID: u64 = 3151908;
-
-#[derive(thiserror::Error, Debug)]
-pub enum KurtosisNetworkError {
-    #[error("failed to connect to kurtosis engine")]
-    EngineConnect,
-    #[error("kurtosis cli is not installed locally")]
-    CliNotInstalled,
-    #[error("failed to start kurtosis engine locally, check if docker installed")]
-    FailedToStartKurtosisEngine,
-    #[error("failed to check kurtosis engine status")]
-    FailedToCheckEngineStatus,
-    #[error("failed to add enclave: {0}")]
-    FailedToAddEnclave(String),
-    #[error("failed to destroy enclave: {0}")]
-    FailedToRemoveEnclave(String),
-    #[error("enclave id is not unique, try a different one")]
-    NonUniqueEnclaveName,
-    #[error("enclave doesn't exist for network")]
-    EnclaveDoesNotExist,
-    #[error("failed to fetch and parse enclave services")]
-    FailedToGetEnclaveServices,
-    #[error("failed to destroy enclave")]
-    FailedToDestroyEnclave,
-    #[error("failed to instantiate RPC client: {0}")]
-    FailedToCreateRpcClient(String),
-    #[error("http call failed: {0}")]
-    HttpCallError(String),
-}
-
-/// Representation of a test externally owned account (EOA).
-pub struct TestEOA {
-    /// Number of transactions
-    nonce: u64,
-    /// Generated address (public key)
-    address: Address,
-    /// Generated private key 
-    private_key: String,
-}
-
-impl TestEOA {
-    /// Create new test EOA with randomly generated private key.
-    pub fn new() -> TestEOA {
-        let wallet = LocalWallet::new(&mut rand::thread_rng());
-        // TODO: Prefund the account with some ETH, by sending ETH to it from another account.
-        // This will cause issues with transaction that are not the users being on the network.
-        // Is there another way to prefund the account?
-        TestEOA {
-            nonce: 0,
-            address: wallet.address(),
-            private_key: wallet.signer().to_bytes().encode_hex::<String>(),
-        }
-    }
-
-    /// Get address of EOA.
-    pub fn address(&self) -> Address {
-        self.address
-    }
-
-    /// Get nonce of EOA, reflects number of transactions sent by EOA.
-    pub fn nonce(&self) -> u64 {
-        self.nonce
-    }
-
-    /// Increment nonce of EOA by one, used when sending transactions.
-    pub fn increment_nonce(&mut self) {
-        self.nonce += 1;
-    }
-}
 
 /// Representation of a HTTP service call.
 #[derive(Debug)]
@@ -136,10 +75,6 @@ impl EnclaveService {
     }
 }
 
-// TODO: Implement `Drop` trait to automatically destroy/clean all enclaves of engine, calls self.teardown().
-// TODO: refresh/restart?
-// TODO: Mine utility for mining blocks: "mine(x)", "mine_every(sec)"
-
 /// Kurtosis Ethereum test network.
 pub struct KurtosisTestNetwork {
     /// Kurtosis engine client
@@ -155,20 +90,20 @@ impl KurtosisTestNetwork {
     pub async fn setup(
         network_params_file_name: Option<&str>,
     ) -> Result<Self, KurtosisNetworkError> {
-        is_kurtosis_cli_installed()?;
+        kurtosis::is_cli_installed()?;
         println!("Kurtosis installed.");
 
         // start kurtosis engine (in docker), if no engine context is found
-        if !is_kurtosis_engine_running()? {
+        if !kurtosis::is_engine_running()? {
             println!("Starting kurtosis engine locally...");
-            start_kurtosis_engine(
-                network_params_file_name.unwrap_or("default_network_params.json"),
+            kurtosis::start_engine(
+                network_params_file_name.unwrap_or(constants::DEFAULT_NETWORK_PARAMS_FILE_NAME),
             )?;
         }
         println!("Kurtosis engine running locally.");
 
         // connect to local kurtosis engine
-        let mut engine = EngineServiceClient::connect("https://[::1]:9710")
+        let mut engine = EngineServiceClient::connect(constants::DEFAULT_KURTOSIS_ENGINE_ENDPOINT)
             .await
             .map_err(|_| KurtosisNetworkError::EngineConnect)
             .unwrap();
@@ -187,8 +122,8 @@ impl KurtosisTestNetwork {
         // if no enclave found, create ethereum-package
         if enclave_id.is_empty() {
             println!("No existing enclave found on startup, creating ethereum-package enclave.");
-            start_kurtosis_engine(
-                network_params_file_name.unwrap_or("default_network_params.json"),
+            kurtosis::start_engine(
+                network_params_file_name.unwrap_or(constants::DEFAULT_NETWORK_PARAMS_FILE_NAME),
             )?;
 
             // Fetch newly created ethereum-package enclave uuid
@@ -203,7 +138,7 @@ impl KurtosisTestNetwork {
         }
 
         // get and parse all services of enclave
-        let services = get_kurtosis_running_services(enclave_id.as_str())?;
+        let services = kurtosis::get_running_services(enclave_id.as_str())?;
         // DEBUG: 
         // println!("Indexed services within enclave: ");
         // services.iter().for_each(|s| {
@@ -222,12 +157,13 @@ impl KurtosisTestNetwork {
 
     /// Default chain network ID for kurtosis test networks.
     pub fn chain_id(&self) -> u64 {
-        DEFAULT_LOCAL_CHAIN_ID
+        constants::DEFAULT_LOCAL_CHAIN_ID
     }
 
     /// Destroy enclave containing eithereum test network, engine continues running.
     pub fn destroy(&self) -> Result<(), KurtosisNetworkError> {
-        delete_kurtosis_enclave(self.enclave_id.as_str())
+        println!("Destroying enclave: {}", self.enclave_id);
+        kurtosis::delete_enclave(self.enclave_id.as_str())
     }
 
     /// Send transaction to network node, must be execution layer (EL).
@@ -295,7 +231,7 @@ impl KurtosisTestNetwork {
         let provider = Provider::<Http>::try_from(rpc_url)
             .map_err(|e| KurtosisNetworkError::FailedToCreateRpcClient(e.to_string()))?;
         let wallet = signer
-            .private_key
+            .private_key()
             .parse::<LocalWallet>()
             .map_err(|e| KurtosisNetworkError::FailedToCreateRpcClient(e.to_string()))?;
         let client = SignerMiddleware::new_with_provider_chain(provider.clone(), wallet)
@@ -303,211 +239,5 @@ impl KurtosisTestNetwork {
             .map_err(|e| KurtosisNetworkError::FailedToCreateRpcClient(e.to_string()))?;
 
         Ok(client)
-    }
-}
-
-// fn format_tx
-
-/// Start Kurtosis engine locally in docker using ethereum-package.
-///
-/// Command:
-/// `kurtosis run github.com/kurtosis-tech/ethereum-package --args-file {network_params_file_name}`
-///
-/// Launch `ethereum-package` enclave, this also spins up engine if not already done so.
-fn start_kurtosis_engine(network_params_file_name: &str) -> Result<(), KurtosisNetworkError> {
-    let mut net_param_conf_path = "configs/".to_string();
-    net_param_conf_path.push_str(network_params_file_name);
-
-    let cmd_result = Command::new("kurtosis")
-        .arg("run")
-        .arg("github.com/kurtosis-tech/ethereum-package")
-        .arg("--args-file")
-        .arg(net_param_conf_path)
-        .output();
-    match cmd_result {
-        Ok(out) => {
-            if !out.status.success() {
-                return Err(KurtosisNetworkError::FailedToStartKurtosisEngine);
-            }
-            Ok(())
-        }
-        Err(_) => Err(KurtosisNetworkError::FailedToStartKurtosisEngine),
-    }
-}
-
-/// Check if Kurtosis CLI is installed locally.
-///
-/// Command:
-/// `kurtosis version`
-///
-/// If getting version fails, we know Kurtosis is not installed, else it is.
-fn is_kurtosis_cli_installed() -> Result<(), KurtosisNetworkError> {
-    let cmd_result = Command::new("kurtosis").arg("version").output();
-    match cmd_result {
-        Ok(out) => {
-            if !out.status.success() {
-                return Err(KurtosisNetworkError::FailedToCheckEngineStatus);
-            }
-            Ok(())
-        }
-        Err(_) => Err(KurtosisNetworkError::CliNotInstalled),
-    }
-}
-
-/// Check if Kurtosis engine is running locally in docker.
-///
-/// Command:
-/// `kurtosis engine status`
-///
-/// Check if kurtosis engine is running by checking for presence of string:
-///
-/// `"Kurtosis engine is running with the following info"`
-///
-/// If present in standard output of command, return `true` if so, else `false`.
-fn is_kurtosis_engine_running() -> Result<bool, KurtosisNetworkError> {
-    let cmd_out = Command::new("kurtosis")
-        .arg("engine")
-        .arg("status")
-        .output();
-    match cmd_out {
-        Ok(out) => {
-            if !out.status.success() {
-                return Err(KurtosisNetworkError::FailedToCheckEngineStatus);
-            }
-            let command_stdout = String::from_utf8_lossy(&out.stdout);
-            Ok(command_stdout.contains("Kurtosis engine is running with the following info"))
-        }
-        Err(_) => Err(KurtosisNetworkError::FailedToCheckEngineStatus),
-    }
-}
-
-/// Fetch all active/running services in enclave.
-///
-/// Command:
-/// `kurtosis enclave inspect {enclave_uuid}`
-///
-/// Returns a list of enclave services parsed from standard output of enclave inspect.
-fn get_kurtosis_running_services(
-    enclave_uuid: &str,
-) -> Result<Vec<EnclaveService>, KurtosisNetworkError> {
-    let cmd_out = Command::new("kurtosis")
-        .arg("enclave")
-        .arg("inspect")
-        .arg(enclave_uuid)
-        .output();
-    match cmd_out {
-        Ok(out) => {
-            if !out.status.success() {
-                return Err(KurtosisNetworkError::FailedToGetEnclaveServices);
-            }
-            let command_stdout = String::from_utf8_lossy(&out.stdout);
-            let enclave_services = parse_services_from_enclave_inspect(&command_stdout.to_string());
-            Ok(enclave_services)
-        }
-        Err(_) => Err(KurtosisNetworkError::FailedToGetEnclaveServices),
-    }
-}
-
-/// Deletes an enclave.
-///
-/// Command:
-/// `kurtosis enclave rm {enclave_uuid} --force`
-///
-/// We force removal using `--force` to prevent having to stop enclave, then removing.
-/// Instead this does it all within a single command.
-fn delete_kurtosis_enclave(enclave_uuid: &str) -> Result<(), KurtosisNetworkError> {
-    let cmd_out = Command::new("kurtosis")
-        .arg("enclave")
-        .arg("rm")
-        .arg(enclave_uuid)
-        .arg("--force")
-        .output();
-    match cmd_out {
-        Ok(out) => {
-            if !out.status.success() {
-                return Err(KurtosisNetworkError::FailedToDestroyEnclave);
-            }
-            Ok(())
-        }
-        Err(_) => Err(KurtosisNetworkError::FailedToDestroyEnclave),
-    }
-}
-
-/// Parses raw services output from kurtosis enclave inspect command output to [`EnclaveService`] type.
-///
-/// Example of all service line edge cases handled:
-///
-/// ```text
-/// 0: ========================================== User Services ==========================================
-/// 1: 7d28bc07285f   beacon-metrics-gazer                             http: 8080/tcp -> http://127.0.0.1:56766      RUNNING
-/// 2: 93e319e73408   cl-1-lighthouse-reth                             http: 4000/tcp -> http://127.0.0.1:56741      RUNNING
-/// 3:                                                                 metrics: 5054/tcp -> http://127.0.0.1:56742
-/// 4: cd490f70070c   blob-spammer                                     <none>                                        RUNNING
-/// ````
-///
-/// Parse normal service lines (lines 1, 2), some services have multiple ports (line 3) or no ports (line 4).
-fn parse_services_from_enclave_inspect(raw_output: &String) -> Vec<EnclaveService> {
-    let none_port_service_line_re =
-        Regex::new(r"^([a-f0-9]{12})\s+(\S+)\s+(<none>)\s+(\S+)").unwrap();
-    let continue_service_line_re = Regex::new(r"^\s+(\S+)(:)\s+(\S+)\s+(\S+)\s+(\S+)\s+").unwrap();
-    let new_service_line_re =
-        Regex::new(r"^([a-f0-9]{12})\s+(\S+)\s+(\S+)(:)\s(\d+\S+)\s(->)\s(\S+)(\s+)(\S+)$")
-            .unwrap();
-
-    let mut services: Vec<EnclaveService> = Vec::new();
-    raw_output.split("\n").for_each(|line| {
-        // DEBUG: println!("{:?}", line);
-
-        // if we match a new service line, return new enclave service entry
-        if let Some(caps) = new_service_line_re.captures(line) {
-            let port_info = EnclaveServicePortInfo {
-                name: caps.get(3).unwrap().as_str().to_string(),
-                protocol: caps.get(5).unwrap().as_str().to_string(),
-                url: remove_http_from_url(caps.get(7).unwrap().as_str().to_string()),
-            };
-            services.push(EnclaveService {
-                uuid: caps.get(1).unwrap().as_str().to_string(),
-                name: caps.get(2).unwrap().as_str().to_string(),
-                status: caps.get(9).unwrap().as_str().to_string(),
-                ports: vec![port_info],
-            });
-            return;
-        }
-
-        // if we match a none port service, return new enclave service entry with no ports
-        if let Some(caps) = none_port_service_line_re.captures(line) {
-            services.push(EnclaveService {
-                uuid: caps.get(1).unwrap().as_str().to_string(),
-                name: caps.get(2).unwrap().as_str().to_string(),
-                status: caps.get(4).unwrap().as_str().to_string(),
-                ports: vec![],
-            });
-            return;
-        }
-
-        // if we match a continued service port line, update last service by appending to ports
-        if let Some(caps) = continue_service_line_re.captures(line) {
-            let mut last_service = services.pop().unwrap();
-            let mut updated_service_ports = last_service.ports;
-            updated_service_ports.push(EnclaveServicePortInfo {
-                name: caps.get(1).unwrap().as_str().to_string(),
-                protocol: caps.get(3).unwrap().as_str().to_string(),
-                url: remove_http_from_url(caps.get(5).unwrap().as_str().to_string()),
-            });
-            last_service.ports = updated_service_ports;
-            services.push(last_service);
-            return;
-        }
-    });
-
-    services
-}
-
-/// Removes "https://" prefix from url or returns original no prefix found.
-fn remove_http_from_url(url: String) -> String {
-    if url.contains("http://") {
-        url.replace("http://", "")
-    } else {
-        url
     }
 }
