@@ -10,14 +10,14 @@ use serde_json::json;
 
 pub mod constants;
 pub mod eoa;
+pub mod types;
 mod kurtosis;
 mod errors;
 mod utils;
 
 use crate::eoa::TestEOA;
 use crate::errors::KurtosisNetworkError;
-
-type EthRpcClient = SignerMiddleware<Provider<ethers::providers::Http>, LocalWallet>;
+use crate::types::EthRpcClient;
 
 /// Representation of a HTTP service call.
 #[derive(Debug)]
