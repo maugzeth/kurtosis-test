@@ -139,14 +139,7 @@ impl KurtosisTestNetwork {
 
         // get and parse all services of enclave
         let services = kurtosis::get_running_services(enclave_id.as_str())?;
-        // DEBUG: 
-        // println!("Indexed services within enclave: ");
-        // services.iter().for_each(|s| {
-        //     println!("+ {}", s.name);
-        //     s.ports.iter().for_each(|p| {
-        //         println!("    + {}@{}, ", p.name, p.url);
-        //     });
-        // });
+        utils::pprint_services(&services);
 
         Ok(Self {
             engine,

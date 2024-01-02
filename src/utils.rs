@@ -82,3 +82,14 @@ fn remove_http_from_url(url: String) -> String {
         url
     }
 }
+
+/// Pretty print kurtosis network services.
+pub fn pprint_services(services: &Vec<EnclaveService>) {
+    println!("Indexed services within enclave: ");
+    services.iter().for_each(|s| {
+        println!("+ {}", s.name);
+        s.ports.iter().for_each(|p| {
+            println!("    + {}@{}, ", p.name, p.url);
+        });
+    });
+}
