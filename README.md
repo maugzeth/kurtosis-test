@@ -140,4 +140,4 @@ View, manage and debug running docker images (engine, services).
 
 ## Contibutors
 
-Authored by [@muagzeth](https://github.com/maugzeth) and maintained with 🖤 by **Dedsol Team**
+Authored by [@maugzeth](https://github.com/maugzeth) and maintained with 💚 by **Dedsol Team**
