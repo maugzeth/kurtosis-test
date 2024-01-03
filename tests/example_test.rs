@@ -19,16 +19,7 @@ async fn test_something() {
     // 2. Fetch required info from ethereum test network.
     // Ex: Find EL node service and port it exposes for JSON-RPC endpoint.
     // TODO: Add a way to filter for specific client type e.g. is_reth, is_geth, etc.
-    let el_service = network
-        .services
-        .iter()
-        .find(|service| service.is_exec_layer())
-        .unwrap();
-    let rpc_port = el_service
-        .ports
-        .iter()
-        .find(|port| port.is_rpc_port())
-        .unwrap();
+    let rpc_port = network.get_el_rpc_port().unwrap();
 
     // 3. Setup your application which is dependant on network info.
     // Ex: Setup a mock database and indexer workflow (application specific).

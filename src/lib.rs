@@ -186,6 +186,12 @@ impl KurtosisTestNetwork {
         Ok(sent_tx.tx_hash())
     }
 
+    pub fn get_el_rpc_port(&self) -> Result<&EnclaveServicePortInfo, KurtosisNetworkError> {
+        let el_service = self.services.iter().find(|service| service.is_exec_layer()).ok_or(KurtosisNetworkError::NoExecLayerFound).unwrap();
+        let rpc_port = el_service.ports.iter().find(|port| port.is_rpc_port()).ok_or(KurtosisNetworkError::NoRpcPortFoundInExecLayer(el_service.name.clone()))?;
+        Ok(rpc_port)
+    }
+
     /// Generic utility for directly calling/interacting with a enclave service endpoint.
     pub async fn call(
         &self,
