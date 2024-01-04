@@ -3,8 +3,50 @@
 use std::process::Command;
 
 use crate::errors::KurtosisNetworkError;
-use crate::EnclaveService;
 use crate::utils;
+
+/// Enclave service port info structure.
+#[derive(Debug, Clone)]
+pub struct EnclaveServicePort {
+    /// Port name e.g. "http", "metrics", "rpc", etc
+    pub name: String,
+    /// Port protocol description e.g. "8080/tcp"
+    pub protocol: String,
+    /// URL to connect to service e.g. "127.0.0.1:56766".
+    pub url: String,
+}
+
+impl EnclaveServicePort {
+    /// Check if port is JSON-RPC port.
+    pub fn is_rpc_port(&self) -> bool {
+        self.name.eq("rpc")
+    }
+
+    /// Check if port is a engine RPC.
+    pub fn is_engine_rpc_port(&self) -> bool {
+        self.name.eq("engine-rpc")
+    }
+}
+
+/// Enclave service structure.
+#[derive(Debug)]
+pub struct EnclaveService {
+    /// Unique identifier for service
+    pub uuid: String,
+    /// Human readable name of service
+    pub name: String,
+    /// Status of the service e.g. "RUNNING"
+    pub status: String,
+    /// List of service ports
+    pub ports: Vec<EnclaveServicePort>,
+}
+
+impl EnclaveService {
+    /// Check if service is execution layer service, name is prefixed with "el-" and has RPC service port.
+    pub fn is_exec_layer(&self) -> bool {
+        self.name.contains("el-") && self.ports.iter().find(|port| port.is_rpc_port()).is_some()
+    }
+}
 
 /// Start Kurtosis engine locally in docker using ethereum-package.
 ///

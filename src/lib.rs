@@ -1,12 +1,7 @@
 //! Testing utility for managing local Kurtosis Ethereum network.
 
-// TODO: Implement `Drop` trait to automatically destroy/clean all enclaves of engine, calls self.teardown().
-// TODO: refresh/restart?
-// TODO: Mine utility for mining blocks: "mine(x)", "mine_every(sec)"
-
 use ethers::{prelude::*, types::transaction::eip2718::TypedTransaction};
 use kurtosis_sdk::engine_api::engine_service_client::EngineServiceClient;
-use serde_json::json;
 
 pub mod constants;
 pub mod eoa;
@@ -18,62 +13,7 @@ mod utils;
 use crate::eoa::TestEOA;
 use crate::errors::KurtosisNetworkError;
 use crate::types::EthRpcClient;
-
-/// Representation of a HTTP service call.
-#[derive(Debug)]
-pub struct EnclaveServiceEthCall {
-    /// Service port to send request to
-    pub service_port: EnclaveServicePortInfo,
-    /// Request method e.g. GET, POST, etc
-    pub http_method: reqwest::Method,
-    /// Ethereum method e.g. eth_call, eth_senfTransaction
-    pub eth_method: &'static str,
-    /// Body/payload for HTTP service call
-    pub payload: serde_json::Value,
-}
-
-/// Enclave service port info structure.
-#[derive(Debug, Clone)]
-pub struct EnclaveServicePortInfo {
-    /// Port name e.g. "http", "metrics", "rpc", etc
-    pub name: String,
-    /// Port protocol description e.g. "8080/tcp"
-    pub protocol: String,
-    /// URL to connect to service e.g. "127.0.0.1:56766".
-    pub url: String,
-}
-
-impl EnclaveServicePortInfo {
-    /// Check if port is JSON-RPC port.
-    pub fn is_rpc_port(&self) -> bool {
-        self.name.eq("rpc")
-    }
-
-    /// Check if port is a engine RPC.
-    pub fn is_engine_rpc_port(&self) -> bool {
-        self.name.eq("engine-rpc")
-    }
-}
-
-/// Enclave service structure.
-#[derive(Debug)]
-pub struct EnclaveService {
-    /// Unique identifier for service
-    pub uuid: String,
-    /// Human readable name of service
-    pub name: String,
-    /// Status of the service e.g. "RUNNING"
-    pub status: String,
-    /// List of service ports
-    pub ports: Vec<EnclaveServicePortInfo>,
-}
-
-impl EnclaveService {
-    /// Check if service is execution layer service, name is prefixed with "el-" and has RPC service port.
-    pub fn is_exec_layer(&self) -> bool {
-        self.name.contains("el-") && self.ports.iter().find(|port| port.is_rpc_port()).is_some()
-    }
-}
+use crate::kurtosis::{EnclaveService, EnclaveServicePort};
 
 /// Kurtosis Ethereum test network.
 pub struct KurtosisTestNetwork {
@@ -162,7 +102,7 @@ impl KurtosisTestNetwork {
     /// Send transaction to network node, must be execution layer (EL).
     pub async fn send_transaction(
         &self,
-        el_rpc_port: &EnclaveServicePortInfo,
+        el_rpc_port: &EnclaveServicePort,
         sender: &mut TestEOA,
         tx: &TypedTransaction,
     ) -> Result<TxHash, KurtosisNetworkError> {
@@ -187,37 +127,16 @@ impl KurtosisTestNetwork {
         Ok(sent_tx.tx_hash())
     }
 
-    pub fn get_el_rpc_port(&self) -> Result<&EnclaveServicePortInfo, KurtosisNetworkError> {
+    pub fn get_el_rpc_port(&self) -> Result<&EnclaveServicePort, KurtosisNetworkError> {
         let el_service = self.services.iter().find(|service| service.is_exec_layer()).ok_or(KurtosisNetworkError::NoExecLayerFound).unwrap();
         let rpc_port = el_service.ports.iter().find(|port| port.is_rpc_port()).ok_or(KurtosisNetworkError::NoRpcPortFoundInExecLayer(el_service.name.clone()))?;
         Ok(rpc_port)
     }
 
-    /// Generic utility for directly calling/interacting with a enclave service endpoint.
-    pub async fn call(
-        &self,
-        call: &EnclaveServiceEthCall,
-    ) -> Result<reqwest::Response, reqwest::Error> {
-        let client = reqwest::Client::new();
-
-        let request: reqwest::RequestBuilder = match call.http_method {
-            reqwest::Method::GET => client.get(format!("http//{}", call.service_port.url)),
-            reqwest::Method::POST => client.post(format!("http://{}", call.service_port.url)),
-            reqwest::Method::PUT => client.put(format!("http://{}", call.service_port.url)),
-            reqwest::Method::DELETE => client.delete(format!("http://{}", call.service_port.url)),
-            _ => panic!("Unsupported service call method."),
-        };
-
-        let payload = json!({ "id": 1, "jsonrpc": "2.0", "method": call.eth_method, "params": [&call.payload]});
-        println!("PAYLOAD: {:?}", payload);
-
-        request.json(&payload).send().await
-    }
-
     /// Instantiate and return RPC client for RPC service port with signer middleware.
     pub async fn rpc_client_for(
         &self,
-        service_port: &EnclaveServicePortInfo,
+        service_port: &EnclaveServicePort,
         signer: &TestEOA,
     ) -> Result<EthRpcClient, KurtosisNetworkError> {
         if !service_port.is_rpc_port() {
@@ -242,9 +161,9 @@ impl KurtosisTestNetwork {
     }
 }
 
-impl Drop for KurtosisTestNetwork {
-    fn drop(&mut self) {
-        println!("Shutting down kurtosis test network.");
-        self.destroy().unwrap();
-    }
-}
+// impl Drop for KurtosisTestNetwork {
+//     fn drop(&mut self) {
+//         println!("Shutting down kurtosis test network.");
+//         self.destroy().unwrap();
+//     }
+// }

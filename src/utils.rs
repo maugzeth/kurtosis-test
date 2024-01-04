@@ -2,7 +2,7 @@
 
 use regex::Regex;
 
-use crate::{EnclaveService, EnclaveServicePortInfo};
+use crate::kurtosis::{EnclaveService, EnclaveServicePort};
 
 /// Parses raw services output from kurtosis enclave inspect command output to [`EnclaveService`] type.
 ///
@@ -31,7 +31,7 @@ pub fn parse_services_from_enclave_inspect(raw_output: &String) -> Vec<EnclaveSe
 
         // if we match a new service line, return new enclave service entry
         if let Some(caps) = new_service_line_re.captures(line) {
-            let port_info = EnclaveServicePortInfo {
+            let port_info = EnclaveServicePort {
                 name: caps.get(3).unwrap().as_str().to_string(),
                 protocol: caps.get(5).unwrap().as_str().to_string(),
                 url: remove_http_from_url(caps.get(7).unwrap().as_str().to_string()),
@@ -60,7 +60,7 @@ pub fn parse_services_from_enclave_inspect(raw_output: &String) -> Vec<EnclaveSe
         if let Some(caps) = continue_service_line_re.captures(line) {
             let mut last_service = services.pop().unwrap();
             let mut updated_service_ports = last_service.ports;
-            updated_service_ports.push(EnclaveServicePortInfo {
+            updated_service_ports.push(EnclaveServicePort {
                 name: caps.get(1).unwrap().as_str().to_string(),
                 protocol: caps.get(3).unwrap().as_str().to_string(),
                 url: remove_http_from_url(caps.get(5).unwrap().as_str().to_string()),

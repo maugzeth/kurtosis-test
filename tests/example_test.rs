@@ -26,8 +26,8 @@ async fn test_something() {
     // TODO: Optionally pass in rpc port or else default choose one for them.
     // 4: interact with network e.g. sending transactions.
     // Ex: sending two test transactions to test network.
-    let funding_eth = parse_ether("100").unwrap();
-    let mut sender = TestEOA::new(&network, Some(funding_eth)).await.unwrap();
+    // let funding_eth = parse_ether("100").unwrap();
+    let mut sender = TestEOA::new(&network, None).await.unwrap();
     // let tx = TypedTransaction::Legacy(
     //     TransactionRequest {
     //         from: Some(sender.address()),
