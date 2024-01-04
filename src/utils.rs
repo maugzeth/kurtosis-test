@@ -2,7 +2,27 @@
 
 use regex::Regex;
 
+use crate::KurtosisTestNetwork;
 use crate::kurtosis::{EnclaveService, EnclaveServicePort};
+use crate::errors::KurtosisNetworkError;
+
+/// Get execution layer RPC port from network enclave services.
+pub fn get_el_rpc_port(network: &KurtosisTestNetwork) -> Result<&EnclaveServicePort, KurtosisNetworkError> {
+    let el_service = network
+        .services
+        .iter()
+        .find(|service| service.is_exec_layer())
+        .ok_or(KurtosisNetworkError::NoExecLayerFound)
+        .unwrap();
+    let rpc_port = el_service
+        .ports
+        .iter()
+        .find(|port| port.is_rpc_port())
+        .ok_or(KurtosisNetworkError::NoRpcPortFoundInExecLayer(
+            el_service.name.clone(),
+        ))?;
+    Ok(rpc_port)
+}
 
 /// Parses raw services output from kurtosis enclave inspect command output to [`EnclaveService`] type.
 ///

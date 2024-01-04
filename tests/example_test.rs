@@ -2,7 +2,7 @@
 
 use ethers::types::{transaction::eip2718::TypedTransaction, TransactionRequest};
 use ethers::utils::parse_ether;
-use kurtosis_test::{eoa::TestEOA, KurtosisTestNetwork};
+use kurtosis_test::{eoa::TestEOA, KurtosisTestNetwork, utils};
 
 async fn setup_network() -> KurtosisTestNetwork {
     KurtosisTestNetwork::setup(None).await.unwrap()
@@ -13,18 +13,8 @@ async fn test_something() {
     // 1. Setup ethereum test network.
     let network = setup_network().await;
 
-    // 2. Fetch required info from ethereum test network.
-    // Ex: Find EL node service and port it exposes for JSON-RPC endpoint.
-    // TODO: Add a way to filter for specific client type e.g. is_reth, is_geth, etc.
-    let rpc_port = network.get_el_rpc_port().unwrap();
+    let rpc_port = utils::get_el_rpc_port(&network).unwrap();
 
-    // 3. Setup your application which is dependant on network info.
-    // Ex: Setup a mock database and indexer workflow (application specific).
-    // let database = MyDatabase::new();
-    // let indexer = MyIndexer::new(&database, rpc_service_port.url);
-
-    // 4: interact with network e.g. sending transactions.
-    // Ex: sending two test transactions to test network.
     // let funding_eth = parse_ether("100").unwrap();
     let mut sender = TestEOA::new(&network, None).await.unwrap();
     // let tx = TypedTransaction::Legacy(
@@ -40,9 +30,4 @@ async fn test_something() {
     //     }
     // );
     // network.send_transaction(rpc_port, &mut sender, &tx).await.unwrap();
-
-    // 5: Assert your application state changed as expected.
-    // Ex: database has indexed the two transactions sent to test network.
-    // let indexed_tx_count = database.count("transaction").await.unwrap();
-    // assert_eq!(indexed_tx_count, 2);
 }

@@ -1,6 +1,6 @@
 //! Representation of a externally owned account (EOA) used for testing.
 
-use crate::{constants, errors::KurtosisNetworkError, KurtosisTestNetwork};
+use crate::{constants, errors::KurtosisNetworkError, KurtosisTestNetwork, utils};
 use ethers::{
     prelude::*, types::transaction::eip2718::TypedTransaction, types::TransactionRequest,
     utils::hex::ToHex,
@@ -23,7 +23,7 @@ impl TestEOA {
         eth_amount: Option<U256>,
     ) -> Result<TestEOA, KurtosisNetworkError> {
         // fetch execution layer node rpc port
-        let el_rpc_port = network.get_el_rpc_port()?;
+        let el_rpc_port = utils::get_el_rpc_port(&network)?;
 
         // create a new test account
         let wallet = LocalWallet::new(&mut rand::thread_rng());
@@ -84,7 +84,7 @@ impl TestEOA {
         };
 
         // fetch execution layer node rpc port
-        let el_rpc_port = network.get_el_rpc_port()?;
+        let el_rpc_port = utils::get_el_rpc_port(&network)?;
 
         // get existing transaction count for account if any on network, else result is 0
         let rpc_client = network.rpc_client_for(&el_rpc_port, &funding_eoa).await?;

@@ -8,7 +8,7 @@ pub mod eoa;
 mod errors;
 mod kurtosis;
 pub mod types;
-mod utils;
+pub mod utils;
 
 use crate::eoa::TestEOA;
 use crate::errors::KurtosisNetworkError;
@@ -124,23 +124,6 @@ impl KurtosisTestNetwork {
         sender.increment_nonce();
 
         Ok(sent_tx.tx_hash())
-    }
-
-    pub fn get_el_rpc_port(&self) -> Result<&EnclaveServicePort, KurtosisNetworkError> {
-        let el_service = self
-            .services
-            .iter()
-            .find(|service| service.is_exec_layer())
-            .ok_or(KurtosisNetworkError::NoExecLayerFound)
-            .unwrap();
-        let rpc_port = el_service
-            .ports
-            .iter()
-            .find(|port| port.is_rpc_port())
-            .ok_or(KurtosisNetworkError::NoRpcPortFoundInExecLayer(
-                el_service.name.clone(),
-            ))?;
-        Ok(rpc_port)
     }
 
     /// Instantiate and return RPC client for RPC service port with signer middleware.
