@@ -29,6 +29,8 @@ let network = KurtosisTestNetwork::setup(network_params).await.unwrap();
 
 ### Create Test Account (EOA)
 
+Import into scope:
+
 ```rust
 use kurtosis_test::eoa::TestEOA;
 ```
@@ -52,7 +54,7 @@ let fund_amount = parse_ether("100").unwrap();
 let mut funded_eoa = TEstEOA::new(&network, Some(fund_amount)).await.unwrap();
 ```
 
-### Fetch Network Nodes / Participants
+### Inspect Network Services
 
 #### Manually Inspect Network Services
 
@@ -66,7 +68,7 @@ You can manually inspect network services and their respective ports like so:
 
 ```rust
 let el_service = network.services.iter().find(|service| service.is_exec_layer())?;
-let rpc_port = el_service.ports.iter().find(|port| ...)?;
+let rpc_port = el_service.ports.iter().find(|port| port.is_rpc_port())?
 ```
 
 #### Get Execution Layer RPC Port
