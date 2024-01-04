@@ -17,15 +17,21 @@ pub struct EnclaveServicePort {
 }
 
 impl EnclaveServicePort {
-    /// Check if port is JSON-RPC port.
+    /// Check if port is http JSON-RPC port.
     pub fn is_rpc_port(&self) -> bool {
         self.name.eq("rpc")
+    }
+
+    /// Check if port is websocket JSON-RPC port.
+    pub fn is_ws_rpc_port(&self) -> bool {
+        self.name.eq("ws")
     }
 
     /// Check if port is a engine RPC.
     pub fn is_engine_rpc_port(&self) -> bool {
         self.name.eq("engine-rpc")
     }
+
 }
 
 /// Enclave service structure.
