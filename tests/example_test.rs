@@ -7,10 +7,6 @@ async fn setup_network() -> KurtosisTestNetwork {
     KurtosisTestNetwork::setup(None).await.unwrap()
 }
 
-fn teardown_network(network: KurtosisTestNetwork) {
-    network.destroy().unwrap();
-}
-
 #[tokio::test]
 async fn test_something() {
     // 1. Setup ethereum test network.
@@ -46,7 +42,4 @@ async fn test_something() {
     // Ex: database has indexed the two transactions sent to test network.
     // let indexed_tx_count = database.count("transaction").await.unwrap();
     // assert_eq!(indexed_tx_count, 2);
-
-    // 6. (optional) Teardown/destroy network, optionally destroy with_engine.
-    // teardown_network(network)
 }
