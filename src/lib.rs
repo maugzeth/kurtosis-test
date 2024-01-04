@@ -30,6 +30,7 @@ impl KurtosisTestNetwork {
     pub async fn setup(
         network_params_file_name: Option<&str>,
     ) -> Result<Self, KurtosisNetworkError> {
+        // check kurtosis cli is installed
         kurtosis::is_cli_installed()?;
         println!("Kurtosis installed.");
 
@@ -49,9 +50,7 @@ impl KurtosisTestNetwork {
             .unwrap();
         println!("Connected to engine.");
 
-        // get an existing enclave id, can only be empty or a single ethereum-package enclave is deployed.
-        // empty state is only acheived when we have a running engine but no etherereum-package enclave deployed.
-        // if we have a single enclave, ethereum-package enclave is deployed within running engine.
+        // fetch existing enclaves for engine
         let existing_enclaves = engine.get_enclaves(()).await.unwrap().into_inner();
         let mut enclave_id: String = existing_enclaves
             .enclave_info
@@ -59,7 +58,7 @@ impl KurtosisTestNetwork {
             .map(|id| id.to_string())
             .collect();
 
-        // if no enclave found, create ethereum-package
+        // if no enclave is found, create ethereum-package enclave
         if enclave_id.is_empty() {
             println!("No existing enclave found on startup, creating ethereum-package enclave.");
             kurtosis::start_engine(
@@ -74,10 +73,10 @@ impl KurtosisTestNetwork {
                 .map(|id| id.to_string())
                 .collect();
         } else {
-            println!("Existing enclaves on startup: {:?}", enclave_id);
+            println!("Existing enclave found on startup: {:?}", enclave_id);
         }
 
-        // get and parse all services of enclave
+        // fetch and parse all services of enclave
         let services = kurtosis::get_running_services(enclave_id.as_str())?;
         utils::pprint_services(&services);
 
@@ -88,7 +87,7 @@ impl KurtosisTestNetwork {
         })
     }
 
-    /// Default chain network ID for kurtosis test networks.
+    /// Default chain network ID for kurtosis test network.
     pub fn chain_id(&self) -> u64 {
         constants::DEFAULT_LOCAL_CHAIN_ID
     }
@@ -99,7 +98,7 @@ impl KurtosisTestNetwork {
         kurtosis::delete_enclave(self.enclave_id.as_str())
     }
 
-    /// Send transaction to network node, must be execution layer (EL).
+    /// Send transaction to network node (via given execution layer RPC port).
     pub async fn send_transaction(
         &self,
         el_rpc_port: &EnclaveServicePort,

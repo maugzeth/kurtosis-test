@@ -1,4 +1,4 @@
-//!
+//! Error types for the Kurtosis network module
 
 #[derive(thiserror::Error, Debug)]
 pub enum KurtosisNetworkError {

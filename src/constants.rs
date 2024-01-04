@@ -1,4 +1,4 @@
-//!
+//! Constants used by the Kurtosis Ethereum module.
 
 /// Default local Ethereum chain identifier.
 pub const DEFAULT_LOCAL_CHAIN_ID: u64 = 3151908;

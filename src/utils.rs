@@ -1,4 +1,4 @@
-//!
+//! General utility function for module.
 
 use regex::Regex;
 

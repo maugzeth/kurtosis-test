@@ -1,4 +1,4 @@
-//!
+//! Custom module types
 
 use ethers::middleware::SignerMiddleware;
 use ethers::providers::{Http, Provider};

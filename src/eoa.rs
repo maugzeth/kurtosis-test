@@ -1,4 +1,4 @@
-//!
+//! Representation of a externally owned account (EOA) used for testing.
 
 use crate::{constants, errors::KurtosisNetworkError, KurtosisTestNetwork};
 use ethers::{

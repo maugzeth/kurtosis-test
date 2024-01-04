@@ -1,4 +1,4 @@
-//!
+//! Kurotisis CLI utilities and abstractions.
 
 use std::process::Command;
 
