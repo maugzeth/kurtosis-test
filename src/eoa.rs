@@ -1,6 +1,12 @@
 //!
 
-use ethers::{prelude::*,  utils::hex::ToHex};
+use ethers::{
+    prelude::*, 
+    utils::hex::ToHex, 
+    types::transaction::eip2718::TypedTransaction, 
+    types::TransactionRequest
+};
+use crate::{constants, KurtosisTestNetwork, errors::KurtosisNetworkError};
 
 /// Representation of a test externally owned account (EOA).
 pub struct TestEOA {
@@ -14,16 +20,81 @@ pub struct TestEOA {
 
 impl TestEOA {
     /// Create new test EOA with randomly generated private key.
-    pub fn new() -> TestEOA {
+    pub async fn new(network: &KurtosisTestNetwork, eth_amount: Option<U256>) -> Result<TestEOA, KurtosisNetworkError> {
+        // fetch execution layer node rpc port
+        let el_rpc_port = network.get_el_rpc_port()?;
+
+        // create a new test account
         let wallet = LocalWallet::new(&mut rand::thread_rng());
-        // TODO: Prefund the account with some ETH, by sending ETH to it from another account.
-        // This will cause issues with transaction that are not the users being on the network.
-        // Is there another way to prefund the account?
-        TestEOA {
+        let mut new_eoa = TestEOA {
             nonce: 0,
             address: wallet.address(),
             private_key: wallet.signer().to_bytes().encode_hex::<String>(),
-        }
+        };
+
+        // get existing transaction count for account if any on network, else result is 0
+        let rpc_client = network.rpc_client_for(&el_rpc_port, &new_eoa).await?;
+        let eoa_tx_count = rpc_client.get_transaction_count(wallet.address(), None)
+            .await
+            .map_err(|e| KurtosisNetworkError::FailedToCreateNewEOA(e.to_string()))
+            .unwrap()
+            .as_u64();
+
+        // set nonce to transaction count + 1 for new transaction
+        new_eoa.nonce = eoa_tx_count;
+
+        // fund account with eth amount if specified
+        if let Some(amount) = eth_amount {
+            let mut funding_eoa = TestEOA::funding_eoa(&network).await.unwrap();
+
+            let funding_tx = TypedTransaction::Legacy(
+                TransactionRequest {
+                    from: Some(funding_eoa.address()),
+                    to: Some(new_eoa.address().into()),
+                    // typical gas limit for a simple transfer
+                    gas: Some(constants::ETH_TRANSFER_GAS_LIMIT.into()),
+                    gas_price: None,
+                    value: Some(amount),
+                    // no data for a simple transfer
+                    data: None,
+                    nonce: Some(funding_eoa.nonce().into()),
+                    chain_id: Some(network.chain_id().into()),
+                }
+            );
+            
+            network.send_transaction(&el_rpc_port, &mut funding_eoa, &funding_tx)
+                .await
+                .map_err(|e| KurtosisNetworkError::FundingTestEoa(e.to_string()))
+                .unwrap();
+        };
+
+        Ok(new_eoa)
+    }
+
+    /// Get EOA prefunded with 1,000,000,000 ETH, used to prefund other EOAs.
+    async fn funding_eoa(network: &KurtosisTestNetwork) -> Result<TestEOA, KurtosisNetworkError> {
+        let address = constants::PREFUNDING_ACCOUNT_PUB_KEY.parse::<Address>().unwrap();
+        let mut funding_eoa = TestEOA {
+            nonce: 0,
+            address: address,
+            private_key: constants::PREFUNDING_ACCOUNT_PRIV_KEY.to_string(),
+        };
+
+         // fetch execution layer node rpc port
+         let el_rpc_port = network.get_el_rpc_port()?;
+
+         // get existing transaction count for account if any on network, else result is 0
+        let rpc_client = network.rpc_client_for(&el_rpc_port, &funding_eoa).await?;
+        let eoa_tx_count = rpc_client.get_transaction_count(address, None)
+            .await
+            .map_err(|e| KurtosisNetworkError::FailedToCreateNewEOA(e.to_string()))
+            .unwrap()
+            .as_u64();
+
+        // set nonce to transaction count + 1 for new transaction
+        funding_eoa.nonce = eoa_tx_count;
+
+        Ok(funding_eoa)
     }
 
     /// Get address of EOA.
