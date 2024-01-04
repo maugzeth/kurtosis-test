@@ -26,6 +26,8 @@ pub enum KurtosisNetworkError {
     FailedToCreateRpcClient(String),
     #[error("http call failed: {0}")]
     HttpCallError(String),
+    #[error("sending transaction failed: {0}")]
+    FailedToSendTransaction(String),
     #[error("no execution layer found in network")]
     NoExecLayerFound,
     #[error("no rpc port found for execution layer: {0}")]

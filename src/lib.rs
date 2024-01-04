@@ -177,6 +177,7 @@ impl KurtosisTestNetwork {
         let sent_tx = rpc_client
             .send_transaction(tx.clone(), Some(BlockId::from(block_num)))
             .await
+            .map_err(|e| KurtosisNetworkError::FailedToSendTransaction(e.to_string()))
             .unwrap();
         println!("SENT TX: {:?}", sent_tx);
 
