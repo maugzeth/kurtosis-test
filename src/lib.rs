@@ -167,7 +167,7 @@ impl KurtosisTestNetwork {
         tx: &TypedTransaction,
     ) -> Result<TxHash, KurtosisNetworkError> {
         // define RPC client for execution layer node, with sender as signer
-        let rpc_client = self.rpc_client_for(el_rpc_port, sender).await?;
+        let rpc_client = self.rpc_client_for(&el_rpc_port, &sender).await?;
 
         // fetch current block number to use as block id for transaction
         let block_num = rpc_client.get_block_number().await.unwrap();
