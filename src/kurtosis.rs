@@ -141,7 +141,8 @@ pub fn get_running_services(
                 return Err(KurtosisNetworkError::FailedToGetEnclaveServices);
             }
             let command_stdout = String::from_utf8_lossy(&out.stdout);
-            let enclave_services = utils::parse_services_from_enclave_inspect(&command_stdout.to_string());
+            let enclave_services =
+                utils::parse_services_from_enclave_inspect(&command_stdout.to_string());
             Ok(enclave_services)
         }
         Err(_) => Err(KurtosisNetworkError::FailedToGetEnclaveServices),

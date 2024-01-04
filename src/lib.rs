@@ -5,15 +5,15 @@ use kurtosis_sdk::engine_api::engine_service_client::EngineServiceClient;
 
 pub mod constants;
 pub mod eoa;
-pub mod types;
-mod kurtosis;
 mod errors;
+mod kurtosis;
+pub mod types;
 mod utils;
 
 use crate::eoa::TestEOA;
 use crate::errors::KurtosisNetworkError;
-use crate::types::EthRpcClient;
 use crate::kurtosis::{EnclaveService, EnclaveServicePort};
+use crate::types::EthRpcClient;
 
 /// Kurtosis Ethereum test network.
 pub struct KurtosisTestNetwork {
@@ -121,15 +121,26 @@ impl KurtosisTestNetwork {
             .unwrap();
         println!("SENT TX: {:?}", sent_tx);
 
-        // increment sender nonce, on successful transaction send 
+        // increment sender nonce, on successful transaction send
         sender.increment_nonce();
 
         Ok(sent_tx.tx_hash())
     }
 
     pub fn get_el_rpc_port(&self) -> Result<&EnclaveServicePort, KurtosisNetworkError> {
-        let el_service = self.services.iter().find(|service| service.is_exec_layer()).ok_or(KurtosisNetworkError::NoExecLayerFound).unwrap();
-        let rpc_port = el_service.ports.iter().find(|port| port.is_rpc_port()).ok_or(KurtosisNetworkError::NoRpcPortFoundInExecLayer(el_service.name.clone()))?;
+        let el_service = self
+            .services
+            .iter()
+            .find(|service| service.is_exec_layer())
+            .ok_or(KurtosisNetworkError::NoExecLayerFound)
+            .unwrap();
+        let rpc_port = el_service
+            .ports
+            .iter()
+            .find(|port| port.is_rpc_port())
+            .ok_or(KurtosisNetworkError::NoRpcPortFoundInExecLayer(
+                el_service.name.clone(),
+            ))?;
         Ok(rpc_port)
     }
 

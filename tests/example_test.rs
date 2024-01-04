@@ -1,8 +1,8 @@
 //!
 
-use kurtosis_test::{KurtosisTestNetwork, eoa::TestEOA};
 use ethers::types::{transaction::eip2718::TypedTransaction, TransactionRequest};
 use ethers::utils::parse_ether;
+use kurtosis_test::{eoa::TestEOA, KurtosisTestNetwork};
 
 async fn setup_network() -> KurtosisTestNetwork {
     KurtosisTestNetwork::setup(None).await.unwrap()
@@ -23,7 +23,6 @@ async fn test_something() {
     // let database = MyDatabase::new();
     // let indexer = MyIndexer::new(&database, rpc_service_port.url);
 
-    // TODO: Optionally pass in rpc port or else default choose one for them.
     // 4: interact with network e.g. sending transactions.
     // Ex: sending two test transactions to test network.
     // let funding_eth = parse_ether("100").unwrap();
