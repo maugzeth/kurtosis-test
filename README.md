@@ -60,8 +60,9 @@ For more options check out `ethereum-package` documentation, [here](https://gith
 Here is a basic example of integration test for a transaction indexing program structure utilising `kurtosis-test` to launch ethereum test network:
 
 ```rust
-use kurtosis_test::{KurtosisTestNetwork, TestEOA};
+use kurtosis_test::{KurtosisTestNetwork, eoa::TestEOA};
 use ethers::types::{transaction::eip2718::TypedTransaction, TransactionRequest};
+use ethers::utils::parse_ether;
 
 
 /// Setup Ethereum test network using `network_params.json`.
@@ -73,11 +74,6 @@ async fn setup_network() -> KurtosisTestNetwork {
     KurtosisTestNetwork::setup("network_params.json").await.unwrap()
 }
 
-/// Teardown/destroy kurtosis testing enclaves.
-fn teardown_network(network: KurtosisTestNetwork) {
-    network.destroy().unwrap();
-}
-
 #[tokio::test]
 async fn test_something() {
     // 1. Setup ethereum test network.
@@ -85,38 +81,35 @@ async fn test_something() {
 
     // 2. Fetch required info from ethereum test network.
     // Ex: Find EL node service and port it exposes for JSON-RPC endpoint.
-    let el_service = network.services.iter()
-      .find(|service| service.is_exec_layer()).unwrap();
-    let rpc_service_port = el_service.ports.iter()
-      .find(|port| port.is_rpc_port()).unwrap();
+    let rpc_port = network.get_el_rpc_port().unwrap();
 
     // 3. Setup your application which is dependant on network info.
     // Ex: Setup a mock database and indexer workflow (application specific).
     let database = MyDatabase::new();
-    let indexer = MyIndexer::new(&database, rpc_service_port.url);
+    let indexer = MyIndexer::new(&database, &rpc_port.url);
     
     // 4: interact with network e.g. define EOA and send transactions.
     // Ex: sending test transactions to test network.
-    let sender = TestEOA::new();
-    let tx = TypedTransaction::Legacy(TransactionRequest {
-        from: Some(sender.address()),
-        to: Some(sender.address().into()),
-        gas: Some(21000.into()),
-        gas_price: Some(20_000_000_000u64.into()),
-        value: Some(1_000_000_000_000_000u64.into()),
-        data: None,
-        nonce: Some(sender.nonce().into()),
-        chain_id: Some(network.chain_id().into()),
-    });
+    let eth_amount = parse_ether("10").unwrap();
+    let sender = TestEOA::new(&network, eth_amount).await.unwrap();
+    let tx = TypedTransaction::Legacy(
+        TransactionRequest {
+            from: Some(sender.address()),
+            to: Some(sender.address().into()),
+            gas: Some(21000.into()),
+            gas_price: Some(20_000_000_000u64.into()),
+            value: Some(1_000_000_000_000_000u64.into()),
+            data: None,
+            nonce: Some(sender.nonce().into()),
+            chain_id: Some(network.chain_id().into()),
+        }
+    );
     network.send_transaction(rpc_port, &sender, &tx).await.unwrap();
     
     // 5: Assert your application state changed as expected.
     // Ex: database has indexed the two transactions sent to test network.
     let indexed_tx_count = database.count("transaction").await.unwrap();
     assert_eq!(indexed_tx_count, 2);
-
-    // 6. (Optional) Teardown/destroy network
-    teardown_network(network)
 }
 ```
 
