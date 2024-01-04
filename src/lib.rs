@@ -171,9 +171,9 @@ impl KurtosisTestNetwork {
     }
 }
 
-// impl Drop for KurtosisTestNetwork {
-//     fn drop(&mut self) {
-//         println!("Shutting down kurtosis test network.");
-//         self.destroy().unwrap();
-//     }
-// }
+impl Drop for KurtosisTestNetwork {
+    fn drop(&mut self) {
+        println!("Shutting down kurtosis test network.");
+        self.destroy().unwrap();
+    }
+}
