@@ -3,12 +3,12 @@
 use ethers::{prelude::*, types::transaction::eip2718::TypedTransaction};
 use kurtosis_sdk::engine_api::engine_service_client::EngineServiceClient;
 
-use crate::kurtosis;
 use crate::constants;
-use crate::utils;
 use crate::eoa::TestEOA;
 use crate::errors::KurtosisNetworkError;
+use crate::kurtosis;
 use crate::types::EthRpcClient;
+use crate::utils;
 
 /// Kurtosis Ethereum test network.
 pub struct KurtosisTestNetwork {
@@ -120,6 +120,7 @@ impl KurtosisTestNetwork {
             .unwrap();
         println!("SENT TX: {:?}", sent_tx);
 
+        // TODO: Do we want to increment or set_nonce after fetching current nonce via eth_transactionCount?
         // increment sender nonce, on successful transaction send
         sender.increment_nonce();
 
