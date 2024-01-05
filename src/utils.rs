@@ -2,7 +2,7 @@
 
 use regex::Regex;
 
-use crate::KurtosisTestNetwork;
+use crate::network::KurtosisTestNetwork;
 use crate::kurtosis::{EnclaveService, EnclaveServicePort};
 use crate::errors::KurtosisNetworkError;
 

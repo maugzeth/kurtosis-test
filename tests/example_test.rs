@@ -2,7 +2,7 @@
 
 use ethers::types::{transaction::eip2718::TypedTransaction, TransactionRequest};
 use ethers::utils::parse_ether;
-use kurtosis_test::{eoa::TestEOA, KurtosisTestNetwork, utils};
+use kurtosis_test::{TestEOA, KurtosisTestNetwork, utils};
 
 async fn setup_network() -> KurtosisTestNetwork {
     KurtosisTestNetwork::setup(None).await.unwrap()
@@ -29,5 +29,5 @@ async fn test_something() {
     //         chain_id: Some(network.chain_id().into()), // chain id for mainnet, adjust as needed
     //     }
     // );
-    // network.send_transaction(rpc_port, &mut sender, &tx).await.unwrap();
+    // network.send_transaction(&rpc_port, &mut sender, &tx).await.unwrap();
 }

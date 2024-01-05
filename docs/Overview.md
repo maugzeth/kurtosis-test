@@ -36,7 +36,7 @@ let network = KurtosisTestNetwork::setup(network_params).await.unwrap();
 Import into scope:
 
 ```rust
-use kurtosis_test::eoa::TestEOA;
+use kurtosis_test::TestEOA;
 ```
 
 #### Unfunded Account

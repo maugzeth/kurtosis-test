@@ -1,6 +1,6 @@
 //! Representation of a externally owned account (EOA) used for testing.
 
-use crate::{constants, errors::KurtosisNetworkError, KurtosisTestNetwork, utils};
+use crate::{constants, errors::KurtosisNetworkError, network::KurtosisTestNetwork, utils};
 use ethers::{
     prelude::*, types::transaction::eip2718::TypedTransaction, types::TransactionRequest,
     utils::hex::ToHex,
