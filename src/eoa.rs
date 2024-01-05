@@ -117,7 +117,7 @@ impl TestEOA {
     }
 
     /// Increment nonce of EOA by one, used when sending transactions.
-    pub fn increment_nonce(&mut self) {
+    pub(crate) fn increment_nonce(&mut self) {
         self.nonce += 1;
     }
 }

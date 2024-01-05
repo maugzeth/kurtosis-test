@@ -1,5 +1,7 @@
 //! Testing utility for managing local Kurtosis Ethereum network.
 
+// TODO: Handle nonce incremntation if we send a transaction that should increment the nonce of a test eoa via RPC client.
+
 use ethers::{prelude::*, types::transaction::eip2718::TypedTransaction};
 use kurtosis_sdk::engine_api::engine_service_client::EngineServiceClient;
 
@@ -22,7 +24,7 @@ pub struct KurtosisTestNetwork {
     /// Active enclaves active for Kurtosis engine
     pub enclave_id: String,
     /// Services running on enclaves
-    pub services: Vec<EnclaveService>,
+    pub(crate) services: Vec<EnclaveService>,
 }
 
 impl KurtosisTestNetwork {
@@ -90,6 +92,11 @@ impl KurtosisTestNetwork {
     /// Default chain network ID for kurtosis test network.
     pub fn chain_id(&self) -> u64 {
         constants::DEFAULT_LOCAL_CHAIN_ID
+    }
+
+    /// Get services running on enclave.
+    pub fn services(&self) -> &Vec<EnclaveService> {
+        &self.services
     }
 
     /// Destroy enclave containing eithereum test network, engine continues running.

@@ -37,7 +37,7 @@ pub fn get_el_rpc_port(network: &KurtosisTestNetwork) -> Result<&EnclaveServiceP
 /// ````
 ///
 /// Parse normal service lines (lines 1, 2), some services have multiple ports (line 3) or no ports (line 4).
-pub fn parse_services_from_enclave_inspect(raw_output: &String) -> Vec<EnclaveService> {
+pub(crate) fn parse_services_from_enclave_inspect(raw_output: &String) -> Vec<EnclaveService> {
     let none_port_service_line_re =
         Regex::new(r"^([a-f0-9]{12})\s+(\S+)\s+(<none>)\s+(\S+)").unwrap();
     let continue_service_line_re = Regex::new(r"^\s+(\S+)(:)\s+(\S+)\s+(\S+)\s+(\S+)\s+").unwrap();
