@@ -20,7 +20,11 @@ let network = KurtosisTestNetwork::setup(None).await.unwrap();
 
 #### Custom Test Network
 
-Define custom network parameter configuration file in `tests/configs/netparams/{custom_net_params.json}`.
+within the root of your project directory define custom network parameter configuration file in:
+
+`tests/configs/netparams/{custom_net_params.json}`
+
+Then pass the name as a parameter when instantiating your test network:
 
 ```rust
 let network_params = Some("custom_net_params.json");
@@ -54,26 +58,39 @@ let fund_amount = parse_ether("100").unwrap();
 let mut funded_eoa = TEstEOA::new(&network, Some(fund_amount)).await.unwrap();
 ```
 
+#### Accessing EOA Properties
+
+Common properties exposed by test EOA object:
+
+```rust
+let mut eoa = TestEOA::new(&network, None).await.unwrap();
+eoa.address();      // aka public key
+eoa.nonece();       // aka transaction count
+eoa.private_key();
+```
+
 ### Inspect Network Services
 
 #### Manually Inspect Network Services
 
+We can get a list of all running services on our test network by calling:
+
 ```rust
-network.services.iter().find(|service| ...);
+network.services();
 ```
 
 #### Manually Inspect Network Service Ports
 
-You can manually inspect network services and their respective ports like so:
+You can manually inspect network services and their respective ports, like so:
 
 ```rust
-let el_service = network.services.iter().find(|service| service.is_exec_layer())?;
+let el_service = network.services().iter().find(|service| service.is_exec_layer())?;
 let rpc_port = el_service.ports.iter().find(|port| port.is_rpc_port())?
 ```
 
 #### Get Execution Layer RPC Port
 
-It's common to want to fetch RPC port of execution layer (EL) service within network.
+A common operation is to fetch the RPC port of an execution layer (EL) service within a network.
 
 To do so you can use a utility function:
 
@@ -88,7 +105,7 @@ let rpc_port = utils::get_el_rpc_port(&network).unwrap();
 
 Instantiate an `ethers-rs` JSON-RPC client with passed in test EOA used as transaction signer.
 
-Transaction will be sent to node belonging for which `el_rpc_port` belongs to.
+Transaction will be sent to node for which `el_rpc_port` (service port) belongs to.
 
 ```rust
 let rpc_client = network.rpc_client_for(&el_rpc_port, &test_eoa).await?;
