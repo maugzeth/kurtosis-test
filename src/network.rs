@@ -1,5 +1,7 @@
 //!
 
+use std::{thread, time::Duration};
+
 use ethers::{prelude::*, types::transaction::eip2718::TypedTransaction};
 use kurtosis_sdk::engine_api::engine_service_client::EngineServiceClient;
 
@@ -140,8 +142,34 @@ impl KurtosisTestNetwork {
     }
 
     // TODO: send_transactions() to send multiple transactions in one block.
+    // TODO: wait_for_x_blocks(x, timeout_secs) to wait for x blocks to be mined.
 
-    // TODO: wait_for_new_block() to wait for new block to be mined.
+    /// Waits for new block to be mined, returns on new block or times out after 30 seconds.
+    pub async fn wait_for_new_block(&self) -> Result<BlockNumber, KurtosisNetworkError> {
+        let client = self.rpc_client().await?;
+        let current_block_num = client.get_block_number().await.unwrap();
+        
+        let seconds_to_wait = 2;
+        let mut seconds_till_timeout = 16;
+        let new_block_num;
+        loop {
+            thread::sleep(Duration::from_secs(seconds_to_wait));
+            
+            let block_num = client.get_block_number().await.unwrap();
+            if block_num > current_block_num {
+                new_block_num = block_num;
+                break;
+            }
+
+            seconds_till_timeout -= seconds_to_wait;
+            if seconds_till_timeout <= 0 {
+                return Err(KurtosisNetworkError::TimeoutWaitingForNewBlock);
+            }
+        }
+
+        Ok(BlockNumber::from(new_block_num))
+    }
+
     /// Instantiate and return RPC client for execution layer RPC port.
     pub async fn rpc_client(&self) -> Result<EthRpcClient, KurtosisNetworkError> {
         let port = utils::get_el_rpc_port(&self).unwrap();

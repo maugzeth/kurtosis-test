@@ -36,4 +36,6 @@ pub enum KurtosisNetworkError {
     NoRpcPortFoundInExecLayer(String),
     #[error("no rpc port found for execution layer: {0}")]
     FailedToCreateNewEOA(String),
+    #[error("timed out waiting for new block")]
+    TimeoutWaitingForNewBlock,
 }
