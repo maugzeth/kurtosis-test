@@ -2,6 +2,7 @@
 
 use ethers::types::{transaction::eip2718::TypedTransaction, TransactionRequest};
 use ethers::utils::parse_ether;
+use kurtosis_test::assertions::assert_eoa_balance;
 use kurtosis_test::{TestEOA, KurtosisTestNetwork, utils, constants};
 
 async fn setup_network() -> KurtosisTestNetwork {
@@ -41,5 +42,10 @@ async fn test_something() {
     );
     network.send_transaction(&mut sender, &tx, Some(rpc_port)).await.unwrap();
 
+    // Wait for new block to be mined with new funded eoa's
+    network.wait_for_new_block().await.unwrap();
+
     // TODO: Assert transfer was successful with expected amount
+    let expected_receiver_balance = parse_ether("1").unwrap();
+    assert_eoa_balance(&network, &receiver, expected_receiver_balance).await;
 }
