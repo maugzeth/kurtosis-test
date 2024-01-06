@@ -23,7 +23,8 @@ async fn test_something() {
     let funding_eth = parse_ether("100").unwrap();
     let mut sender = TestEOA::new(&network, Some(funding_eth)).await.unwrap();
 
-    // TODO: network.wait_for_new_block(&rpc_port).await.unwrap();
+    // Wait for new block to be mined with new funded eoa's
+    network.wait_for_new_block().await.unwrap();
 
     // Send funds from sender to receiver
     let tx = TypedTransaction::Legacy(

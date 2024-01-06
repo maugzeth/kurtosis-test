@@ -4,4 +4,5 @@ use ethers::middleware::SignerMiddleware;
 use ethers::providers::{Http, Provider};
 use ethers::signers::LocalWallet;
 
-pub type EthRpcClient = SignerMiddleware<Provider<Http>, LocalWallet>;
+pub type EthRpcClientWithSigner = SignerMiddleware<Provider<Http>, LocalWallet>;
+pub type EthRpcClient = Provider<Http>;

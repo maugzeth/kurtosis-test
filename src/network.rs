@@ -7,7 +7,7 @@ use crate::constants;
 use crate::eoa::TestEOA;
 use crate::errors::KurtosisNetworkError;
 use crate::kurtosis;
-use crate::types::EthRpcClient;
+use crate::types::{EthRpcClient, EthRpcClientWithSigner};
 use crate::utils;
 
 /// Kurtosis Ethereum test network.
@@ -142,13 +142,21 @@ impl KurtosisTestNetwork {
     // TODO: send_transactions() to send multiple transactions in one block.
 
     // TODO: wait_for_new_block() to wait for new block to be mined.
+    /// Instantiate and return RPC client for execution layer RPC port.
+    pub async fn rpc_client(&self) -> Result<EthRpcClient, KurtosisNetworkError> {
+        let port = utils::get_el_rpc_port(&self).unwrap();
+        let rpc_url = format!("http://{}", port.url);
+        let provider = Provider::<Http>::try_from(rpc_url)
+            .map_err(|e| KurtosisNetworkError::FailedToCreateRpcClient(e.to_string()))?;
+        Ok(provider)
+    }
 
     /// Instantiate and return RPC client for RPC service port with signer middleware.
     pub async fn rpc_client_for(
         &self,
         service_port: &kurtosis::EnclaveServicePort,
         signer: &TestEOA,
-    ) -> Result<EthRpcClient, KurtosisNetworkError> {
+    ) -> Result<EthRpcClientWithSigner, KurtosisNetworkError> {
         if !service_port.is_rpc_port() {
             return Err(KurtosisNetworkError::FailedToCreateRpcClient(
                 "Port provided is not an RPC port.".to_string(),
