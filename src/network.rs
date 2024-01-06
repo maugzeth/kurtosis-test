@@ -101,12 +101,18 @@ impl KurtosisTestNetwork {
     /// Send transaction to network node (via given execution layer RPC port).
     pub async fn send_transaction(
         &self,
-        el_rpc_port: &kurtosis::EnclaveServicePort,
         sender: &mut TestEOA,
         tx: &TypedTransaction,
+        rpc_port: Option<&kurtosis::EnclaveServicePort>,
     ) -> Result<TxHash, KurtosisNetworkError> {
         // define RPC client for execution layer node, with sender as signer
-        let rpc_client = self.rpc_client_for(&el_rpc_port, &sender).await?;
+        let rpc_client;
+        if let Some(port) = rpc_port {
+            rpc_client = self.rpc_client_for(port, &sender).await?;
+        } else {
+            let port = utils::get_el_rpc_port(&self).unwrap();
+            rpc_client = self.rpc_client_for(port, &sender).await?;
+        }
 
         // fetch current block number to use as block id for transaction
         let block_num = rpc_client.get_block_number().await.unwrap();
@@ -120,12 +126,22 @@ impl KurtosisTestNetwork {
             .unwrap();
         println!("SENT TX: {:?}", sent_tx);
 
-        // TODO: Do we want to increment or set_nonce after fetching current nonce via eth_transactionCount?
-        // increment sender nonce, on successful transaction send
-        sender.increment_nonce();
+        // set new nonce, on successful transaction send
+        let eoa_tx_count = rpc_client
+            .get_transaction_count(sender.address(), None)
+            .await
+            .map_err(|e| KurtosisNetworkError::FailedToSendTransaction(e.to_string()))
+            .unwrap()
+            .as_u64();
+        println!("EOA TX COUNT: {:?}", eoa_tx_count);
+        sender.set_nonce(eoa_tx_count);
 
         Ok(sent_tx.tx_hash())
     }
+
+    // TODO: send_transactions() to send multiple transactions in one block.
+
+    // TODO: wait_for_new_block() to wait for new block to be mined.
 
     /// Instantiate and return RPC client for RPC service port with signer middleware.
     pub async fn rpc_client_for(

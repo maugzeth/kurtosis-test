@@ -42,7 +42,7 @@ impl TestEOA {
             .unwrap()
             .as_u64();
 
-        // set nonce to transaction count + 1 for new transaction
+        // set nonce to transaction count for new transaction
         new_eoa.nonce = eoa_tx_count;
 
         // fund account with eth amount if specified
@@ -63,7 +63,7 @@ impl TestEOA {
             });
 
             network
-                .send_transaction(&el_rpc_port, &mut funding_eoa, &funding_tx)
+                .send_transaction(&mut funding_eoa, &funding_tx, Some(el_rpc_port))
                 .await
                 .map_err(|e| KurtosisNetworkError::FundingTestEoa(e.to_string()))
                 .unwrap();
@@ -119,5 +119,10 @@ impl TestEOA {
     /// Increment nonce of EOA by one, used when sending transactions.
     pub(crate) fn increment_nonce(&mut self) {
         self.nonce += 1;
+    }
+
+    /// Increment nonce of EOA by one, used when sending transactions.
+    pub(crate) fn set_nonce(&mut self, new_nonce: u64) {
+        self.nonce = new_nonce;
     }
 }
