@@ -142,32 +142,44 @@ impl KurtosisTestNetwork {
     }
 
     // TODO: send_transactions() to send multiple transactions in one block.
-    // TODO: wait_for_x_blocks(x, timeout_secs) to wait for x blocks to be mined.
 
     /// Waits for new block to be mined, returns on new block or times out after 30 seconds.
     pub async fn wait_for_new_block(&self) -> Result<BlockNumber, KurtosisNetworkError> {
         let client = self.rpc_client().await?;
         let current_block_num = client.get_block_number().await.unwrap();
-        
-        let seconds_to_wait = 2;
-        let mut seconds_till_timeout = 16;
+
+        let poll_rate_sec = 2;
+        let mut seconds_till_timeout = 16 * poll_rate_sec;
         let new_block_num;
+
         loop {
-            thread::sleep(Duration::from_secs(seconds_to_wait));
-            
+            // wait for certain amonut of seconds before checking again
+            thread::sleep(Duration::from_secs(poll_rate_sec));
+
+            // check if new block has been mined
             let block_num = client.get_block_number().await.unwrap();
             if block_num > current_block_num {
                 new_block_num = block_num;
                 break;
             }
 
-            seconds_till_timeout -= seconds_to_wait;
+            // check if we have exceeded time to wait for new block
+            seconds_till_timeout -= poll_rate_sec;
             if seconds_till_timeout <= 0 {
                 return Err(KurtosisNetworkError::TimeoutWaitingForNewBlock);
             }
         }
 
         Ok(BlockNumber::from(new_block_num))
+    }
+
+    /// Waits for x blocks to be mined.
+    pub async fn wait_for_x_blocks(&self, x: u16) -> Result<(), KurtosisNetworkError> {
+        assert!(x > 0, "Number of blocks to wait for must be greater than 0.");
+        for _ in 0..x {
+            self.wait_for_new_block().await?;
+        }
+        Ok(())
     }
 
     /// Instantiate and return RPC client for execution layer RPC port.
@@ -207,3 +219,9 @@ impl KurtosisTestNetwork {
     }
 }
 
+// impl Drop for KurtosisTestNetwork {
+//     fn drop(&mut self) {
+//         println!("Shutting down kurtosis test network.");
+//         self.destroy().unwrap();
+//     }
+// }
