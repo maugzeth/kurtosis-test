@@ -149,7 +149,7 @@ impl KurtosisTestNetwork {
         let current_block_num = client.get_block_number().await.unwrap();
 
         let poll_rate_sec = 2;
-        let mut seconds_till_timeout = 16 * poll_rate_sec;
+        let mut seconds_till_timeout = 18 * poll_rate_sec;
         let new_block_num;
 
         loop {
