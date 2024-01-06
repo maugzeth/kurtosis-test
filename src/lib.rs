@@ -1,5 +1,7 @@
 //! Testing utility for managing local Kurtosis Ethereum network.
 
+pub mod assertions;
+
 pub mod network;
 pub use crate::network::KurtosisTestNetwork;
 
