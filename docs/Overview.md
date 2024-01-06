@@ -135,6 +135,24 @@ let tx = TypedTransaction::Legacy(
 network.send_transaction(&rpc_port, &mut sender, &tx).await?;
 ```
 
+### Block Utilities
+
+#### Waiting for New Block
+
+Wait for new block to be mined before continuing.
+
+```rust
+network.wait_for_new_block().await.unwrap();
+```
+
+#### Wait for X Amount of Blocks
+
+Waits for X number of blocks to be mined before continuing.
+
+```rust
+network.wait_for_x_block(3).await.unwrap();
+```
+
 ### Assertions
 
 TODO
